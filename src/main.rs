@@ -6,7 +6,7 @@ use pixels::{Error, Pixels, SurfaceTexture};
 use std::{cell::RefCell, rc::Rc};
 
 const WIDTH: u32 = 600;
-const HEIGHT: u32 = 400;
+const HEIGHT: u32 = 600;
 
 mod graphics;
 

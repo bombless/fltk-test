@@ -134,23 +134,22 @@ pub fn create_bitmap(
 
     for y in 0..32 * 8 * 2 {
         let is_extra_space = y < 32 * 8;
-        let y_coord = 32 * 8 - 1 - y % (32 * 8);
         for x in 0..32 * 8 * 2 {
             if is_extra_space {
                 if x >= 120 {
                     rgb.extend(&[255, 255, 255]);
                     continue;
                 }
-                let color = bg_tiles.get_color(index, x % 120, y_coord).unwrap_or((0, 0, 0));
+                let color = bg_tiles.get_color(index, x % 120, y).unwrap_or((0, 0, 0));
                 rgb.extend(&[color.0, color.1, color.2]);
                 continue;
             }
             let tile_data = if x < 32 * 8 { tiles } else { tiles2 };
             let i = x % (32 * 8) / 32;
-            let j = y_coord % (32 * 8) / 32;
+            let j = y % (32 * 8) / 32;
             let n = i * 8 + j;
             let data = get_image(n, tile_data);
-            let offset = y_coord % 32 * 32 * 3 + x % 32 * 3;
+            let offset = y % 32 * 32 * 3 + x % 32 * 3;
             rgb.extend(&[data[offset], data[offset + 1], data[offset + 2]]);
         }
     }
