@@ -7,14 +7,14 @@ use std::{cell::RefCell, rc::Rc};
 
 const WIDTH: u32 = 600;
 const HEIGHT: u32 = 400;
-const CIRCLE_RADIUS: i16 = 64;
+
+mod graphics;
 
 /// Representation of the application state. In this example, a circle will bounce around the screen.
 struct World {
-    circle_x: i16,
-    circle_y: i16,
-    velocity_x: i16,
-    velocity_y: i16,
+    tiles: Vec<u8>,
+    tiles2: Vec<u8>,
+    bg_tiles: graphics::TileMap,
 }
 
 fn main() -> Result<(), Error> {
@@ -86,48 +86,40 @@ fn log_error<E: std::error::Error + 'static>(method_name: &str, err: E) {
 impl World {
     /// Create a new `World` instance that can draw a moving circle.
     fn new() -> Self {
+
+        let tiles = graphics::source("./graphics/spriteTiles.inc");
+        let tiles2 = graphics::source("./graphics/spriteTiles2.inc");
+        let bg_tiles = graphics::TileMap::new();
         Self {
-            circle_x: 300,
-            circle_y: 200,
-            velocity_x: 5,
-            velocity_y: 5,
+            tiles,
+            tiles2,
+            bg_tiles,
         }
     }
 
     /// Update the `World` internal state; bounce the circle around the screen.
     fn update(&mut self) {
-        if self.circle_x - CIRCLE_RADIUS <= 0 || self.circle_x + CIRCLE_RADIUS > WIDTH as i16 {
-            self.velocity_x *= -1;
-        }
-        if self.circle_y - CIRCLE_RADIUS <= 0 || self.circle_y + CIRCLE_RADIUS > HEIGHT as i16 {
-            self.velocity_y *= -1;
-        }
-
-        self.circle_x += self.velocity_x;
-        self.circle_y += self.velocity_y;
     }
 
     /// Draw the `World` state to the frame buffer.
     ///
     /// Assumes the default texture format: `wgpu::TextureFormat::Rgba8UnormSrgb`
     fn draw(&self, frame: &mut [u8]) {
+        let bitmap = graphics::create_bitmap(0, &self.tiles, &self.tiles2, &self.bg_tiles);
         for (i, pixel) in frame.chunks_exact_mut(4).enumerate() {
-            let x = (i % WIDTH as usize) as i16;
-            let y = (i / WIDTH as usize) as i16;
-            let d = {
-                let xd = x as i32 - self.circle_x as i32;
-                let yd = y as i32 - self.circle_y as i32;
-                ((xd.pow(2) + yd.pow(2)) as f64).sqrt().powi(2)
-            };
-            let inside_the_circle = d < (CIRCLE_RADIUS as f64).powi(2);
+            let x = i % WIDTH as usize;
+            let y = i / WIDTH as usize;
 
-            let rgba = if inside_the_circle {
-                [0xac, 0x00, 0xe6, 0xff]
-            } else {
-                [0x26, 0x00, 0x33, 0xff]
-            };
+            if x >= 32 * 8 * 2 || y >= 32 * 8 * 2 {
+                pixel.copy_from_slice(&[0, 0, 0, 0xFF]);
+                continue;
+            }
 
-            pixel.copy_from_slice(&rgba);
+            let offset = x * 3 + y * 3 * 32 * 8 * 2;
+
+            let slice = &bitmap[offset..offset + 3];
+
+            pixel.copy_from_slice(&[slice[0], slice[1], slice[2], 0xFF]);
         }
     }
 }
