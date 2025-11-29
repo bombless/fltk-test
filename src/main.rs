@@ -4,17 +4,21 @@ use fltk::{app, prelude::*, window::Window};
 use log::error;
 use pixels::{Error, Pixels, SurfaceTexture};
 use std::{cell::RefCell, rc::Rc};
+use std::time::Instant;
+use std::time::Duration;
 
 const WIDTH: u32 = 600;
 const HEIGHT: u32 = 600;
 
 mod graphics;
 
-/// Representation of the application state. In this example, a circle will bounce around the screen.
 struct World {
     tiles: Vec<u8>,
     tiles2: Vec<u8>,
     bg_tiles: graphics::TileMap,
+    bitmap: Vec<u8>,
+    last_frame: usize,
+    start_time: Instant,
 }
 
 fn main() -> Result<(), Error> {
@@ -90,22 +94,34 @@ impl World {
         let tiles = graphics::source("./graphics/spriteTiles.inc");
         let tiles2 = graphics::source("./graphics/spriteTiles2.inc");
         let bg_tiles = graphics::TileMap::new();
+        let bitmap = graphics::create_bitmap(0, &tiles, &tiles2, &bg_tiles);
         Self {
             tiles,
             tiles2,
             bg_tiles,
+            bitmap,
+            last_frame: 0,
+            start_time: Instant::now(),
         }
     }
 
     /// Update the `World` internal state; bounce the circle around the screen.
     fn update(&mut self) {
+        let duration = self.start_time.elapsed().as_millis();
+        let frame_count = duration / 100;
+        if frame_count > self.last_frame as _ {
+            println!("Frame: {}", frame_count);
+            self.last_frame = frame_count as _;
+            self.bitmap = graphics::create_bitmap(self.last_frame, &self.tiles, &self.tiles2, &self.bg_tiles);
+        }
+
+
     }
 
     /// Draw the `World` state to the frame buffer.
     ///
     /// Assumes the default texture format: `wgpu::TextureFormat::Rgba8UnormSrgb`
     fn draw(&self, frame: &mut [u8]) {
-        let bitmap = graphics::create_bitmap(0, &self.tiles, &self.tiles2, &self.bg_tiles);
         for (i, pixel) in frame.chunks_exact_mut(4).enumerate() {
             let x = i % WIDTH as usize;
             let y = i / WIDTH as usize;
@@ -117,7 +133,7 @@ impl World {
 
             let offset = x * 3 + y * 3 * 32 * 8 * 2;
 
-            let slice = &bitmap[offset..offset + 3];
+            let slice = &self.bitmap[offset..offset + 3];
 
             pixel.copy_from_slice(&[slice[0], slice[1], slice[2], 0xFF]);
         }
