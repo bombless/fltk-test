@@ -5,7 +5,6 @@ use log::error;
 use pixels::{Error, Pixels, SurfaceTexture};
 use std::{cell::RefCell, rc::Rc};
 use std::time::Instant;
-use std::time::Duration;
 
 const WIDTH: u32 = 600;
 const HEIGHT: u32 = 600;
