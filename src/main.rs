@@ -93,7 +93,7 @@ impl World {
         let tiles = graphics::source("./graphics/spriteTiles.inc");
         let tiles2 = graphics::source("./graphics/spriteTiles2.inc");
         let fetch_color = graphics::FetchColor::new();
-        let bitmap = graphics::create_bitmap(0, &tiles, &tiles2, &fetch_color);
+        let bitmap = graphics::create_bitmap(&tiles, &tiles2, &fetch_color);
         Self {
             tiles,
             tiles2,
@@ -111,7 +111,8 @@ impl World {
         if frame_count > self.last_frame as _ {
             println!("Frame: {}", frame_count);
             self.last_frame = frame_count as _;
-            self.bitmap = graphics::create_bitmap(self.last_frame, &self.tiles, &self.tiles2, &self.fetch_color);
+            self.fetch_color.skip_to(self.last_frame);
+            self.bitmap = graphics::create_bitmap(&self.tiles, &self.tiles2, &self.fetch_color);
         }
 
 

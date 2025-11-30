@@ -35,6 +35,7 @@ fn get_image(n: usize, data: &[u8]) -> Vec<u8> {
 pub struct FetchColor {
     map: TileMap,
     tiles: Tiles,
+    frame: usize,
 }
 pub struct TileMap {
     data: Box<[[u16; 15]; 20]>,
@@ -47,6 +48,40 @@ pub struct Tiles {
 }
 
 impl TileMap {
+
+    fn reset(&mut self) {
+        for y in 0 .. 20 {
+            for x in 0 .. 15 {
+                let offset = y * 15 + x;
+                self.data[y][x] = self.map[offset];
+            }
+        }
+        self.cursor = 15 * 20;
+    }
+
+    pub fn next(&mut self) {
+        let mut data = Box::new([[0u16; 15]; 20]);
+
+        for y in 0 .. 19 {
+            for x in 0 .. 13 {
+                data[y + 1][x] = self.data[y][x + 2];
+            }
+        }
+
+        for offset in 0 .. 15 {
+            data[0][offset] = self.map[self.cursor];
+            self.cursor += 1;
+        }
+        for y in 1 .. 20 {
+            for x in 13 .. 15 {
+                data[y][x] = self.map[self.cursor];
+                self.cursor += 1;
+            }
+
+        }
+
+        self.data = data;
+    }
     pub fn new() -> Self {
         let map_source = source("./graphics/tilemap.inc");
         
@@ -97,7 +132,25 @@ impl FetchColor {
         Self {
             map: TileMap::new(),
             tiles: Tiles::new(),
+            frame: 0,
         }
+    }
+    pub fn next_frame(&mut self) {
+        if self.frame > 160 {
+            self.map.reset();
+            self.frame = 0;
+            return;
+        }
+        self.map.next();
+        self.frame += 1;
+    }
+    pub fn skip(&mut self, n: usize) {
+        for _ in 0 .. n {
+            self.next_frame();
+        }
+    }
+    pub fn skip_to(&mut self, frame: usize) {
+        self.skip(frame - self.frame);
     }
 
     pub fn get_color(&self, x: usize, y: usize) -> Option<(u8, u8, u8)> {
@@ -120,7 +173,6 @@ impl FetchColor {
 
 
 pub fn create_bitmap(
-    index: usize, 
     tiles: &[u8],
     tiles2: &[u8],
     fetch_color: &FetchColor,
