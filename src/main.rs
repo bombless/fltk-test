@@ -6,8 +6,8 @@ use pixels::{Error, Pixels, SurfaceTexture};
 use std::{cell::RefCell, rc::Rc};
 use std::time::Instant;
 
-const WIDTH: u32 = 600;
-const HEIGHT: u32 = 600;
+const WIDTH: u32 = 32 * 8 * 2 + 1;
+const HEIGHT: u32 = 32 * 8 + 160;
 
 mod graphics;
 
@@ -126,7 +126,7 @@ impl World {
             let x = i % WIDTH as usize;
             let y = i / WIDTH as usize;
 
-            if x >= 32 * 8 * 2 || y >= 32 * 8 * 2 {
+            if x >= 32 * 8 * 2 || y >= 32 * 8 + 160 {
                 pixel.copy_from_slice(&[0, 0, 0, 0xFF]);
                 continue;
             }
