@@ -14,7 +14,7 @@ mod graphics;
 struct World {
     tiles: Vec<u8>,
     tiles2: Vec<u8>,
-    bg_tiles: graphics::TileMap,
+    fetch_color: graphics::FetchColor,
     bitmap: Vec<u8>,
     last_frame: usize,
     start_time: Instant,
@@ -92,12 +92,12 @@ impl World {
 
         let tiles = graphics::source("./graphics/spriteTiles.inc");
         let tiles2 = graphics::source("./graphics/spriteTiles2.inc");
-        let bg_tiles = graphics::TileMap::new();
-        let bitmap = graphics::create_bitmap(0, &tiles, &tiles2, &bg_tiles);
+        let fetch_color = graphics::FetchColor::new();
+        let bitmap = graphics::create_bitmap(0, &tiles, &tiles2, &fetch_color);
         Self {
             tiles,
             tiles2,
-            bg_tiles,
+            fetch_color,
             bitmap,
             last_frame: 0,
             start_time: Instant::now(),
@@ -111,7 +111,7 @@ impl World {
         if frame_count > self.last_frame as _ {
             println!("Frame: {}", frame_count);
             self.last_frame = frame_count as _;
-            self.bitmap = graphics::create_bitmap(self.last_frame, &self.tiles, &self.tiles2, &self.bg_tiles);
+            self.bitmap = graphics::create_bitmap(self.last_frame, &self.tiles, &self.tiles2, &self.fetch_color);
         }
 
 

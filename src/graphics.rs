@@ -31,104 +31,99 @@ fn get_image(n: usize, data: &[u8]) -> Vec<u8> {
     }
     img
 }
+
+pub struct FetchColor {
+    map: TileMap,
+    tiles: Tiles,
+}
 pub struct TileMap {
-    raw: Vec<u8>,
-    map: Vec<usize>,
-    map_width: usize,   // 地图宽度（tile 数）
-    map_height: usize,  // 地图高度（tile 数）
-    tile_size: usize,   // 每个 tile 的像素大小
+    data: Box<[[u16; 15]; 20]>,
+    map: Vec<u16>,
+    cursor: usize,
+}
+
+pub struct Tiles {
+    data: Vec<[[(u8, u8, u8); 8]; 8]>,
 }
 
 impl TileMap {
     pub fn new() -> Self {
-        let raw = source("./graphics/bgTiles.inc");
         let map_source = source("./graphics/tilemap.inc");
         
+        let mut data = Box::new([[0u16; 15]; 20]);
         let mut map = Vec::new();
         for i in 0..map_source.len() / 2 {
-            let lo = map_source[i * 2] as usize;
-            let hi = map_source[i * 2 + 1] as usize;
+            let lo = map_source[i * 2] as u16;
+            let hi = map_source[i * 2 + 1] as u16;
             let n = lo + (hi << 8);
             map.push(n);
+
+            if i >= 15 * 20 {
+                continue;
+            }
+            let column = i % 15;
+            let row = i / 15;
+            data[row][column] = n;
         }
         
         Self {
-            raw,
+            data,
             map,
-            map_width: 15,
-            map_height: 20,
-            tile_size: 8,
+            cursor: 15 * 20,
         }
     }
 
 }
 
-impl TileMap {
-    fn get_color(&self, frame: usize, x: usize, y: usize) -> Option<(u8, u8, u8)> {
-        let tile_size = self.tile_size;
-        
-        // ========================================
-        // 根据汇编逻辑计算滚动偏移
-        // ========================================
-        // INC SCROLLX              ; 每帧 +1
-        // TEST RAX, 01H
-        // JNZ JUSTXSCROLL
-        // INC SCROLLY              ; 偶数帧才 +1（每2帧+1）
-        
-        let total_scroll_x = frame;           // X: 每帧滚动1像素
-        let total_scroll_y = frame / 2;       // Y: 每2帧滚动1像素
-        
-        // ========================================
-        // 计算地图坐标（屏幕坐标 + 滚动偏移）
-        // ========================================
-        // 屏幕向左上滚动 = 地图坐标向右下移动
-        let map_x = x + total_scroll_x;
-        let map_y = y + total_scroll_y;
-        
-        // ========================================
-        // 转换为 tile 坐标
-        // ========================================
-        let tile_x = map_x / tile_size;
-        let tile_y = map_y / tile_size;
-        
-        // 边界检查
-        if tile_x >= self.map_width || tile_y >= self.map_height {
-            return None;
+impl Tiles {
+    pub fn new() -> Self {
+        let raw = source("./graphics/bgTiles.inc");
+        let mut data = Vec::new();
+        for slice in raw.chunks(8 * 8 * 4) {
+            let mut tile = Box::new([[(0, 0, 0); 8]; 8]);
+            for (y, line) in slice.chunks(8 * 4).enumerate() {
+                for (x, pixel) in line.chunks(4).enumerate() {
+                    tile[y][x] = (pixel[2], pixel[1], pixel[0]); // BGR -> RGB
+                }
+            }
+            data.push(*tile);
         }
-        
-        // 计算 tile 索引（行优先）
-        let tile_idx = tile_y * self.map_width + tile_x;
-        if tile_idx >= self.map.len() {
-            return None;
-        }
-        let tile_id = self.map[tile_idx];
-        
-        // ========================================
-        // 计算 tile 内像素位置
-        // ========================================
-        let px = map_x % tile_size;
-        let py = map_y % tile_size;
-        
-        // tile 数据偏移（每个 tile = tile_size × tile_size × 4 字节）
-        let bytes_per_tile = tile_size * tile_size * 4;
-        let offset = tile_id * bytes_per_tile;
-        let pixel_offset = (py * tile_size + px) * 4;
-        
-        let total_offset = offset + pixel_offset;
-        if total_offset + 2 >= self.raw.len() {
-            return None;
-        }
-        
-        let buffer = &self.raw[total_offset..];
-        Some((buffer[2], buffer[1], buffer[0]))  // BGR -> RGB
+        Self { data }
     }
 }
+
+impl FetchColor {
+    pub fn new() -> Self {
+        Self {
+            map: TileMap::new(),
+            tiles: Tiles::new(),
+        }
+    }
+
+    pub fn get_color(&self, x: usize, y: usize) -> Option<(u8, u8, u8)> {
+        let tile_pos_x = x / 8;
+        let tile_pos_y = y / 8;
+        
+        if tile_pos_x >= 15 || tile_pos_y >= 20 {
+            return None;
+        }
+        let tile_x = x % 8;
+        let tile_y = y % 8;
+
+        let tile_id = self.map.data[tile_pos_y][tile_pos_x] as usize;
+
+        let tile = &self.tiles.data[tile_id];
+
+        Some(tile[tile_y][tile_x])
+    }
+}
+
 
 pub fn create_bitmap(
     index: usize, 
     tiles: &[u8],
     tiles2: &[u8],
-    bg_tiles: &TileMap,
+    fetch_color: &FetchColor,
 ) -> Vec<u8> {
     let mut rgb = Vec::<u8>::new();
 
@@ -140,7 +135,7 @@ pub fn create_bitmap(
                     rgb.extend(&[255, 255, 255]);
                     continue;
                 }
-                let color = bg_tiles.get_color(index, x % 120, y).unwrap_or((0, 0, 0));
+                let color = fetch_color.get_color(x % 120, y).unwrap_or((0, 0, 0));
                 rgb.extend(&[color.0, color.1, color.2]);
                 continue;
             }
