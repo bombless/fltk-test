@@ -187,7 +187,7 @@ pub fn create_bitmap(
                     rgb.extend(&[255, 255, 255]);
                     continue;
                 }
-                let color = fetch_color.get_color(x % 120, y).unwrap_or((0, 0, 0));
+                let color = fetch_color.get_color(x % 120, y).unwrap_or((255, 255, 255));
                 rgb.extend(&[color.0, color.1, color.2]);
                 continue;
             }
