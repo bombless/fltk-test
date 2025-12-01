@@ -39,6 +39,7 @@ pub struct FetchColor {
 }
 pub struct TileMap {
     tilemap0: Box<[[u16; 15]; 20]>,
+    tilemap1: Box<[[u16; 32]; 32]>,
     map: Vec<u16>,
     cursor: usize,
 }
@@ -85,7 +86,10 @@ impl TileMap {
     pub fn new() -> Self {
         let map_source = source("./graphics/tilemap.inc");
         
-        let mut data = Box::new([[0u16; 15]; 20]);
+        let mut tilemap0 = Box::new([[0u16; 15]; 20]);
+        
+        let mut tilemap1 = Box::new([[0u16; 32]; 32]);
+
         let mut map = Vec::new();
         for i in 0..map_source.len() / 2 {
             let lo = map_source[i * 2] as u16;
@@ -98,11 +102,37 @@ impl TileMap {
             }
             let column = i % 15;
             let row = i / 15;
-            data[row][column] = n;
+            tilemap0[row][column] = n;
         }
+
+        // TITLECARD		DW	0612H, 060FH, 0600H, 0602H, 0604H, 05EDH, 0606H, 0600H, 060CH, 0604H
+		//		DW	05EDH, 0605H, 060EH, 0611H, 05EDH, 0617H, 0620H, 061EH
+
+        let tile_card = &[0x0612, 0x060f, 0x0600, 0x0602, 0x0604, 0x05ed, 0x0606, 0x0600, 0x060c, 0x0604, 0x05ed, 0x0605, 0x060e, 0x0611, 0x05ed, 0x0617, 0x0620, 0x061e];
+        let mut cursor = 0x18 / 2;
+        for tile in tile_card {
+            let x = cursor % 15;
+            let y = cursor / 15;
+            tilemap1[y][x] = *tile;
+            cursor += 1;
+        }
+
+        let mut offset = 0x0204 / 2;
+        let offset_x = offset % 15;
+        let offset_y = offset / 15;
+        tilemap1[offset_y][offset_x] = 0x064d;
+
+        offset += 0x0140 / 2;
+        let offset_x = offset % 15;
+        let offset_y = offset / 15;
+        tilemap1[offset_y][offset_x] = 0x0643;
+
+
+
         
         Self {
-            tilemap0: data,
+            tilemap0,
+            tilemap1,
             map,
             cursor: 15 * 20,
         }
@@ -157,13 +187,22 @@ impl FetchColor {
         let tile_pos_x = x / 8;
         let tile_pos_y = y / 8;
         
-        if tile_pos_x >= 15 || tile_pos_y >= 20 {
+        if tile_pos_x >= 32 || tile_pos_y >= 32 {
             return None;
         }
         let tile_x = x % 8;
         let tile_y = y % 8;
 
-        let tile_id = self.map.tilemap0[tile_pos_y][tile_pos_x] as usize;
+        let tile1_id = self.map.tilemap1[tile_pos_y][tile_pos_x] as usize;
+
+        let tile_id = if tile1_id > 0 {
+            tile1_id
+        } else {
+            if tile_pos_x >= 15 || tile_pos_y >= 20 {
+                return None;
+            }
+            self.map.tilemap0[tile_pos_y][tile_pos_x] as usize
+        };
 
         let tile = &self.tiles.data[tile_id];
 
@@ -183,8 +222,7 @@ pub fn create_bitmap(
         let is_extra_space = y >= 32 * 8;
         for x in 0..32 * 8 * 2 {
             if is_extra_space {
-                let animation_x = (x + 129) % 130;
-                let color = fetch_color.get_color(animation_x, y % (32 * 8)).unwrap_or((255, 255, 255));
+                let color = fetch_color.get_color(x % 256, y % 256).unwrap_or((255, 255, 255));
                 rgb.extend(&[color.0, color.1, color.2]);
                 continue;
             }
