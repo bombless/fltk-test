@@ -108,6 +108,9 @@ impl World {
     fn update(&mut self) {
         let duration = self.start_time.elapsed().as_millis();
         let frame_count = duration / 100;
+        if frame_count > 7 {
+            return;
+        }
         if frame_count > self.last_frame as _ {
             println!("Frame: {}", frame_count);
             self.last_frame = frame_count as _;
