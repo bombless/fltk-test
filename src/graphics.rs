@@ -111,20 +111,20 @@ impl TileMap {
         let tile_card = &[0x0612, 0x060f, 0x0600, 0x0602, 0x0604, 0x05ed, 0x0606, 0x0600, 0x060c, 0x0604, 0x05ed, 0x0605, 0x060e, 0x0611, 0x05ed, 0x0617, 0x0620, 0x061e];
         let mut cursor = 0x18 / 2;
         for tile in tile_card {
-            let x = cursor % 15;
-            let y = cursor / 15;
+            let x = cursor % 32;
+            let y = cursor / 32;
             tilemap1[y][x] = *tile;
             cursor += 1;
         }
 
         let mut offset = 0x0204 / 2;
-        let offset_x = offset % 15;
-        let offset_y = offset / 15;
+        let offset_x = offset % 32;
+        let offset_y = offset / 32;
         tilemap1[offset_y][offset_x] = 0x064d;
 
         offset += 0x0140 / 2;
-        let offset_x = offset % 15;
-        let offset_y = offset / 15;
+        let offset_x = offset % 32;
+        let offset_y = offset / 32;
         tilemap1[offset_y][offset_x] = 0x0643;
 
 
@@ -222,7 +222,7 @@ pub fn create_bitmap(
         let is_extra_space = y >= 32 * 8;
         for x in 0..32 * 8 * 2 {
             if is_extra_space {
-                let color = fetch_color.get_color(x % 256, y % 256).unwrap_or((255, 255, 255));
+                let color = fetch_color.get_color(x % 256, y % 256).unwrap_or((0, 0, 0));
                 rgb.extend(&[color.0, color.1, color.2]);
                 continue;
             }
