@@ -6,18 +6,21 @@ use pixels::{Error, Pixels, SurfaceTexture};
 use std::{cell::RefCell, rc::Rc};
 use std::time::Instant;
 
-const WIDTH: u32 = 32 * 8 * 2 + 1;
-const HEIGHT: u32 = 32 * 8 + 256;
+const WIDTH: u32 = 512 + 1;
+const HEIGHT: u32 = 256;
 
 mod graphics;
 
-struct World {
-    tiles: Vec<u8>,
-    tiles2: Vec<u8>,
-    fetch_color: graphics::FetchColor,
-    bitmap: Vec<u8>,
-    last_frame: usize,
-    start_time: Instant,
+enum World {
+    Sprites {
+        bitmap: Box<[[(u8, u8, u8); 512]; 256]>,
+        start_time: Instant,
+    },
+    Animation {
+        fetch_color: graphics::FetchColor,
+        last_frame: usize,
+        start_time: Instant,
+    },
 }
 
 fn main() -> Result<(), Error> {
@@ -92,31 +95,45 @@ impl World {
 
         let tiles = graphics::source("./graphics/spriteTiles.inc");
         let tiles2 = graphics::source("./graphics/spriteTiles2.inc");
-        let fetch_color = graphics::FetchColor::new();
-        let bitmap = graphics::create_bitmap(&tiles, &tiles2, &fetch_color);
-        Self {
-            tiles,
-            tiles2,
-            fetch_color,
+        let bitmap = graphics::create_bitmap(&tiles, &tiles2);
+        World::Sprites {
             bitmap,
-            last_frame: 0,
             start_time: Instant::now(),
         }
     }
 
+    fn transform(&mut self) {
+        *self = World::Animation {
+            fetch_color: graphics::FetchColor::new(),
+            last_frame: 0,
+            start_time: Instant::now(),
+        };
+    }
+
     /// Update the `World` internal state; bounce the circle around the screen.
     fn update(&mut self) {
-        let duration = self.start_time.elapsed().as_millis();
-        let frame_count = duration / 100;
-        if frame_count > 7 {
-            return;
+        match self {
+            World::Sprites { start_time, .. } => {
+                if start_time.elapsed().as_secs() > 10 {
+                    self.transform();
+                }
+            }
+            World::Animation {
+                    fetch_color, start_time, last_frame
+                } => {
+                    let duration = start_time.elapsed().as_millis();
+                    let frame_count = duration / 100;
+                    if frame_count > 7 {
+                        return;
+                    }
+                    if frame_count > *last_frame as _ {
+                        println!("Frame: {}", frame_count);
+                        *last_frame = frame_count as _;
+                        fetch_color.skip_to(*last_frame);
+                    }
+                }
         }
-        if frame_count > self.last_frame as _ {
-            println!("Frame: {}", frame_count);
-            self.last_frame = frame_count as _;
-            self.fetch_color.skip_to(self.last_frame);
-            self.bitmap = graphics::create_bitmap(&self.tiles, &self.tiles2, &self.fetch_color);
-        }
+        
 
 
     }
@@ -129,26 +146,33 @@ impl World {
             let x = i % WIDTH as usize;
             let y = i / WIDTH as usize;
 
-            if x >= 512 || y >= 512 {
+            if x >= 512 || y >= 256 {
                 pixel.copy_from_slice(&[0, 0, 0, 0xFF]);
                 continue;
             }
 
-            if y >= 256 + 160 && x >= 256 && y + x / 2 > 612 {
-                pixel.copy_from_slice(&[0, 0, 0, 0xFF]);
-                continue;
+            match self {
+                World::Sprites { bitmap, .. } => {
+                    let rgb = bitmap[y][x];
+                    pixel.copy_from_slice(&[rgb.0, rgb.1, rgb.2, 0xFF]);
+                }
+                World::Animation { fetch_color, .. } => {
+                    if y >= 160 && x >= 256 && y + x / 2 > 356 {
+                        pixel.copy_from_slice(&[0, 0, 0, 0xFF]);
+                        continue;
+                    }
+
+                    if y >= 160 && x < 256 && y + x / 2 > 228 {
+                        pixel.copy_from_slice(&[0, 0, 0, 0xFF]);
+                        continue;
+                    }
+
+                    let color = fetch_color.get_color(x % 256, y).unwrap_or((0, 0, 0));
+                    pixel.copy_from_slice(&[color.0, color.1, color.2, 0xFF]);
+                }
+
             }
 
-            if y >= 256 + 160 && x < 256 && y + x / 2 > 484 {
-                pixel.copy_from_slice(&[0, 0, 0, 0xFF]);
-                continue;
-            }
-
-            let offset = x * 3 + y * 3 * 32 * 8 * 2;
-
-            let slice = &self.bitmap[offset..offset + 3];
-
-            pixel.copy_from_slice(&[slice[0], slice[1], slice[2], 0xFF]);
         }
     }
 }

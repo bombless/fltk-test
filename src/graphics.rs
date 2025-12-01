@@ -185,7 +185,7 @@ impl FetchColor {
         self.map.next();
         self.frame += 1;
     }
-    
+
     pub fn skip_to(&mut self, target_frame: usize) {
         for _ in self.frame .. target_frame {
             self.next_frame();
@@ -234,25 +234,18 @@ impl FetchColor {
 pub fn create_bitmap(
     tiles: &[u8],
     tiles2: &[u8],
-    fetch_color: &FetchColor,
-) -> Vec<u8> {
-    let mut rgb = Vec::<u8>::new();
+) -> Box<[[(u8, u8, u8); 512]; 256]> {
+    let mut rgb = Box::new([[(0, 0, 0); 512]; 256]);
 
-    for y in 0..32 * 8 + 256 {
-        let is_extra_space = y >= 32 * 8;
+    for y in 0..32 * 8 {
         for x in 0..32 * 8 * 2 {
-            if is_extra_space {
-                let color = fetch_color.get_color(x % 256, y % 256).unwrap_or((0, 0, 0));
-                rgb.extend(&[color.0, color.1, color.2]);
-                continue;
-            }
             let tile_data = if x < 32 * 8 { tiles } else { tiles2 };
             let i = x % (32 * 8) / 32;
             let j = y / 32;
             let n = i * 8 + j;
             let data = get_image(n, tile_data);
             let offset = y % 32 * 32 * 3 + x % 32 * 3;
-            rgb.extend(&[data[offset], data[offset + 1], data[offset + 2]]);
+            rgb[y][x] = (data[offset], data[offset + 1], data[offset + 2]);
         }
     }
 
