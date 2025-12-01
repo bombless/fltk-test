@@ -134,7 +134,7 @@ impl World {
                 continue;
             }
 
-            if y >= 256 + 160 && x >= 256 && y + 12 * x / 49 > 512 {
+            if y >= 256 + 160 && x >= 256 && y + x / 2 > 612 {
                 pixel.copy_from_slice(&[0, 0, 0, 0xFF]);
                 continue;
             }
