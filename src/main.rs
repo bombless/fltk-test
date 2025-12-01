@@ -129,7 +129,12 @@ impl World {
             let x = i % WIDTH as usize;
             let y = i / WIDTH as usize;
 
-            if x >= 32 * 8 * 2 || y >= 32 * 8 + 160 {
+            if x >= 512 || y >= 512 {
+                pixel.copy_from_slice(&[0, 0, 0, 0xFF]);
+                continue;
+            }
+
+            if y >= 256 + 160 && x >= 256 && y + 12 * x / 49 > 512 {
                 pixel.copy_from_slice(&[0, 0, 0, 0xFF]);
                 continue;
             }
