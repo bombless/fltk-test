@@ -97,56 +97,65 @@ impl World {
     /// Create a new `World` instance that can draw a moving circle.
     fn new() -> Self {
 
-        let tiles = graphics::source("./graphics/spriteTiles.inc");
-        let tiles2 = graphics::source("./graphics/spriteTiles2.inc");
-        let bitmap = graphics::create_bitmap(&tiles, &tiles2);
-        // World::Sprites {
-        //     bitmap,
-        //     start_time: Instant::now(),
-        // }
         World::Tiles { tiles: graphics::Tiles::new(), start_time: Instant::now() }
     }
 
     fn transform(&mut self) {
-        if let World::Sprites { .. } = self {
-            *self = World::Tiles {
-                tiles: graphics::Tiles::new(),
-                start_time: Instant::now(),
-            };
-            return;
+        match self {
+            World::Sprites { .. } => {
+                *self = World::Tiles {
+                    tiles: graphics::Tiles::new(),
+                    start_time: Instant::now(),
+                };
+            }
+            World::Animation { .. } => {
+                let tiles = graphics::source("./graphics/spriteTiles.inc");
+                let tiles2 = graphics::source("./graphics/spriteTiles2.inc");
+                let bitmap = graphics::create_bitmap(&tiles, &tiles2);
+                *self = World::Sprites {
+                    bitmap,
+                    start_time: Instant::now(),
+                };
+            }
+            World::Tiles { .. } => {
+                *self = World::Animation {
+                    fetch_color: graphics::FetchColor::new(),
+                    last_frame: 0,
+                    start_time: Instant::now(),
+                };
+            }
         }
-        *self = World::Animation {
-            fetch_color: graphics::FetchColor::new(),
-            last_frame: 0,
-            start_time: Instant::now(),
-        };
     }
 
     /// Update the `World` internal state; bounce the circle around the screen.
     fn update(&mut self) {
+        let mut should_transform = false;
         match self {
             World::Sprites { start_time, .. } | World::Tiles { start_time, .. } => {
-                if start_time.elapsed().as_secs() > 1000 {
-                    self.transform();
+                if start_time.elapsed().as_secs() > 15 {
+                    should_transform = true;
                 }
             }
             World::Animation {
                     fetch_color, start_time, last_frame
                 } => {
                     let duration = start_time.elapsed().as_millis();
-                    let frame_count = duration / 100;
-                    if frame_count > 7 {
-                        return;
-                    }
-                    if frame_count > *last_frame as _ {
+                    let frame_count = (duration / 100) as usize;
+
+                    if frame_count < 8 && frame_count > *last_frame {
                         println!("Frame: {}", frame_count);
-                        *last_frame = frame_count as _;
+                        *last_frame = frame_count;
                         fetch_color.skip_to(*last_frame);
+                    }
+
+                    if start_time.elapsed().as_secs() > 15 {
+                        should_transform = true;
                     }
                 }
         }
-        
-
+        if should_transform {
+            self.transform();
+        }
 
     }
 
