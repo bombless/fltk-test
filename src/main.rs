@@ -139,6 +139,11 @@ impl World {
                 continue;
             }
 
+            if y >= 256 + 160 && x < 256 && y + x / 2 > 484 {
+                pixel.copy_from_slice(&[0, 0, 0, 0xFF]);
+                continue;
+            }
+
             let offset = x * 3 + y * 3 * 32 * 8 * 2;
 
             let slice = &self.bitmap[offset..offset + 3];
