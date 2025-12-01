@@ -218,7 +218,7 @@ pub fn create_bitmap(
 ) -> Vec<u8> {
     let mut rgb = Vec::<u8>::new();
 
-    for y in 0..32 * 8 + 160 {
+    for y in 0..32 * 8 + 256 {
         let is_extra_space = y >= 32 * 8;
         for x in 0..32 * 8 * 2 {
             if is_extra_space {

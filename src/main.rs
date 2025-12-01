@@ -7,7 +7,7 @@ use std::{cell::RefCell, rc::Rc};
 use std::time::Instant;
 
 const WIDTH: u32 = 32 * 8 * 2 + 1;
-const HEIGHT: u32 = 32 * 8 + 160;
+const HEIGHT: u32 = 32 * 8 + 256;
 
 mod graphics;
 
