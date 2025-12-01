@@ -6,7 +6,7 @@ use pixels::{Error, Pixels, SurfaceTexture};
 use std::{cell::RefCell, rc::Rc};
 use std::time::Instant;
 
-const WIDTH: u32 = 512 + 1 + 8 * 4;
+const WIDTH: u32 = 512 + 1 + 8 * 5;
 const HEIGHT: u32 = 256;
 
 mod graphics;
@@ -189,35 +189,29 @@ impl World {
                 }
                 World::Tiles { tiles, .. } => {
 
-                    if x < 8 {
+                    if x < 8 * 4 {
                         let row = y / 8;
-                        let n = row / 16;
-                        let tile =  tiles.hex_digit(n);
+                        let n = row * 64;
+                        let digit = if x < 8 || x >= 8 * 3 {
+                            0
+                        } else if x < 8 * 2 {
+                            n / 16 / 16 % 16
+                        } else {
+                            n / 16 % 16
+                        };
+                        let tile =  tiles.hex_digit(digit);
                         let tile_x = x % 8;
                         let tile_y = y % 8;
                         let color = &tile[tile_y][tile_x];
                         pixel.copy_from_slice(&[color.0, color.1, color.2, 0xFF]);
                         continue;
-
                     }
 
-                    if x >= 8 && x < 2 * 8 {
-                        let row = y / 8;
-                        let n = row % 16;
-                        let tile = tiles.hex_digit(n);
-                        let tile_x = x % 8;
-                        let tile_y = y % 8;
-                        let color = &tile[tile_y][tile_x];
-                        pixel.copy_from_slice(&[color.0, color.1, color.2, 0xFF]);
-                        continue;
-
-                    }
-
-                    if x < 8 * 4 || x >= 512 + 8 * 4 || y >= 256 {
+                    if x < 8 * 5 || x >= 512 + 8 * 5 || y >= 256 {
                         pixel.copy_from_slice(&[0, 0, 0, 0xFF]);
                         continue;
                     }
-                    let x = x - 8 * 4;
+                    let x = x - 8 * 5;
                     let tile_column = x / 8;
                     let tile_row = y / 8;
                     let tile_idx = tile_column + tile_row * 64;
