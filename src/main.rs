@@ -191,8 +191,8 @@ impl World {
 
                     if x < 8 {
                         let row = y / 8;
-                        let n = row / 10;
-                        let tile = &tiles.data()[0x600 + 26 + n];
+                        let n = row / 16;
+                        let tile =  tiles.hex_digit(n);
                         let tile_x = x % 8;
                         let tile_y = y % 8;
                         let color = &tile[tile_y][tile_x];
@@ -203,8 +203,8 @@ impl World {
 
                     if x >= 8 && x < 2 * 8 {
                         let row = y / 8;
-                        let n = row % 10;
-                        let tile = &tiles.data()[0x600 + 26 + n];
+                        let n = row % 16;
+                        let tile = tiles.hex_digit(n);
                         let tile_x = x % 8;
                         let tile_y = y % 8;
                         let color = &tile[tile_y][tile_x];

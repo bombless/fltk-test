@@ -160,6 +160,22 @@ impl Tiles {
     pub fn data(&self) -> &[[[(u8, u8, u8); 8]; 8]] {
         &self.data
     }
+
+    pub fn alphabet(&self, n: usize) -> &[[(u8, u8, u8); 8]; 8] {
+        &self.data[0x600 + n]
+    }
+
+    pub fn dec_digit(&self, n: usize) -> &[[(u8, u8, u8); 8]; 8] {
+        &self.data[0x600 + 26 + n]
+    }
+
+    pub fn hex_digit(&self, n: usize) -> &[[(u8, u8, u8); 8]; 8] {
+        if n < 10 {
+            self.dec_digit(n)
+        } else {
+            self.alphabet(n - 10)
+        }
+    }
 }
 
 impl FetchColor {
