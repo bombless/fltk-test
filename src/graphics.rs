@@ -34,6 +34,7 @@ fn get_image(n: usize, data: &[u8]) -> Vec<u8> {
 
 pub struct FetchColor {
     map: TileMap,
+    cache: Box<[[u16; 17]; 32]>,
     tiles: Tiles,
     frame: usize,
 }
@@ -163,6 +164,7 @@ impl FetchColor {
             map: TileMap::new(),
             tiles: Tiles::new(),
             frame: 0,
+            cache: Default::default(),
         }
     }
     pub fn next_frame(&mut self) {
@@ -171,16 +173,23 @@ impl FetchColor {
             self.frame = 0;
             return;
         }
+        for y in (0 .. 31).rev() {
+            for x in 0 .. 15 {
+                self.cache[y + 1][x] = self.cache[y][x + 2];
+            }
+        }
+        for y in 0 .. 20 {
+            self.cache[y + 2][15] = self.map.tilemap0[y][0];
+            self.cache[y + 2][16] = self.map.tilemap0[y][1];
+        }
         self.map.next();
         self.frame += 1;
     }
-    pub fn skip(&mut self, n: usize) {
-        for _ in 0 .. n {
+    
+    pub fn skip_to(&mut self, target_frame: usize) {
+        for _ in self.frame .. target_frame {
             self.next_frame();
         }
-    }
-    pub fn skip_to(&mut self, frame: usize) {
-        self.skip(frame - self.frame);
     }
 
     pub fn get_color(&self, x: usize, y: usize) -> Option<(u8, u8, u8)> {
@@ -198,18 +207,21 @@ impl FetchColor {
         let tile_id = if tile1_id > 0 {
             tile1_id
         } else {
-            if tile_pos_x < 17 {
+            if tile_pos_x < 17 && tile_pos_y < 32 {
+                self.cache[tile_pos_y][tile_pos_x] as usize
+            } else if tile_pos_x >= 17 {
+                let tile_pos_x = tile_pos_x - 17;
+                if tile_pos_y < 1 {
+                    return None;
+                }
+                let tile_pos_y = tile_pos_y - 1;
+                if tile_pos_x >= 15 || tile_pos_y >= 20 {
+                    return None;
+                }
+                self.map.tilemap0[tile_pos_y][tile_pos_x] as usize
+            } else {
                 return None;
             }
-            let tile_pos_x = tile_pos_x - 17;
-            if tile_pos_y < 1 {
-                return None;
-            }
-            let tile_pos_y = tile_pos_y - 1;
-            if tile_pos_x >= 15 || tile_pos_y >= 20 {
-                return None;
-            }
-            self.map.tilemap0[tile_pos_y][tile_pos_x] as usize
         };
 
         let tile = &self.tiles.data[tile_id];
