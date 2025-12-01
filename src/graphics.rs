@@ -198,6 +198,14 @@ impl FetchColor {
         let tile_id = if tile1_id > 0 {
             tile1_id
         } else {
+            if tile_pos_x < 17 {
+                return None;
+            }
+            let tile_pos_x = tile_pos_x - 17;
+            if tile_pos_y < 1 {
+                return None;
+            }
+            let tile_pos_y = tile_pos_y - 1;
             if tile_pos_x >= 15 || tile_pos_y >= 20 {
                 return None;
             }
