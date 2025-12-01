@@ -156,6 +156,10 @@ impl Tiles {
         }
         Self { data }
     }
+
+    pub fn data(&self) -> &[[[(u8, u8, u8); 8]; 8]] {
+        &self.data
+    }
 }
 
 impl FetchColor {

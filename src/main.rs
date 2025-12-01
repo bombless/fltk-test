@@ -6,7 +6,7 @@ use pixels::{Error, Pixels, SurfaceTexture};
 use std::{cell::RefCell, rc::Rc};
 use std::time::Instant;
 
-const WIDTH: u32 = 512 + 1;
+const WIDTH: u32 = 512 + 1 + 8 * 4;
 const HEIGHT: u32 = 256;
 
 mod graphics;
@@ -14,6 +14,10 @@ mod graphics;
 enum World {
     Sprites {
         bitmap: Box<[[(u8, u8, u8); 512]; 256]>,
+        start_time: Instant,
+    },
+    Tiles {
+        tiles: graphics::Tiles,
         start_time: Instant,
     },
     Animation {
@@ -103,6 +107,13 @@ impl World {
     }
 
     fn transform(&mut self) {
+        if let World::Sprites { .. } = self {
+            *self = World::Tiles {
+                tiles: graphics::Tiles::new(),
+                start_time: Instant::now(),
+            };
+            return;
+        }
         *self = World::Animation {
             fetch_color: graphics::FetchColor::new(),
             last_frame: 0,
@@ -113,7 +124,7 @@ impl World {
     /// Update the `World` internal state; bounce the circle around the screen.
     fn update(&mut self) {
         match self {
-            World::Sprites { start_time, .. } => {
+            World::Sprites { start_time, .. } | World::Tiles { start_time, .. } => {
                 if start_time.elapsed().as_secs() > 10 {
                     self.transform();
                 }
@@ -146,17 +157,22 @@ impl World {
             let x = i % WIDTH as usize;
             let y = i / WIDTH as usize;
 
-            if x >= 512 || y >= 256 {
-                pixel.copy_from_slice(&[0, 0, 0, 0xFF]);
-                continue;
-            }
-
             match self {
                 World::Sprites { bitmap, .. } => {
+
+                    if x >= 512 || y >= 256 {
+                        pixel.copy_from_slice(&[0, 0, 0, 0xFF]);
+                        continue;
+                    }
                     let rgb = bitmap[y][x];
                     pixel.copy_from_slice(&[rgb.0, rgb.1, rgb.2, 0xFF]);
                 }
                 World::Animation { fetch_color, .. } => {
+
+                    if x >= 512 || y >= 256 {
+                        pixel.copy_from_slice(&[0, 0, 0, 0xFF]);
+                        continue;
+                    }
                     if y >= 160 && x >= 256 && y + x / 2 > 356 {
                         pixel.copy_from_slice(&[0, 0, 0, 0xFF]);
                         continue;
@@ -169,6 +185,23 @@ impl World {
 
                     let color = fetch_color.get_color(x % 256, y).unwrap_or((0, 0, 0));
                     pixel.copy_from_slice(&[color.0, color.1, color.2, 0xFF]);
+                }
+                World::Tiles { tiles, .. } => {
+
+                    if x < 8 * 4 || x >= 512 + 8 * 4 || y >= 256 {
+                        pixel.copy_from_slice(&[0, 0, 0, 0xFF]);
+                        continue;
+                    }
+                    let x = x - 8 * 4;
+                    let tile_column = x / 8;
+                    let tile_row = y / 8;
+                    let tile_idx = tile_column + tile_row * 64;
+                    let tile = &tiles.data()[tile_idx];
+                    let tile_x = x % 8;
+                    let tile_y = y % 8;
+                    let color = tile[tile_y][tile_x];
+                    pixel.copy_from_slice(&[color.0, color.1, color.2, 0xFF]);
+
                 }
 
             }
