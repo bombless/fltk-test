@@ -38,7 +38,7 @@ pub struct FetchColor {
     frame: usize,
 }
 pub struct TileMap {
-    data: Box<[[u16; 15]; 20]>,
+    tilemap0: Box<[[u16; 15]; 20]>,
     map: Vec<u16>,
     cursor: usize,
 }
@@ -53,7 +53,7 @@ impl TileMap {
         for y in 0 .. 20 {
             for x in 0 .. 15 {
                 let offset = y * 15 + x;
-                self.data[y][x] = self.map[offset];
+                self.tilemap0[y][x] = self.map[offset];
             }
         }
         self.cursor = 15 * 20;
@@ -64,7 +64,7 @@ impl TileMap {
 
         for y in 0 .. 19 {
             for x in 0 .. 13 {
-                data[y + 1][x] = self.data[y][x + 2];
+                data[y + 1][x] = self.tilemap0[y][x + 2];
             }
         }
 
@@ -80,7 +80,7 @@ impl TileMap {
 
         }
 
-        self.data = data;
+        self.tilemap0 = data;
     }
     pub fn new() -> Self {
         let map_source = source("./graphics/tilemap.inc");
@@ -102,7 +102,7 @@ impl TileMap {
         }
         
         Self {
-            data,
+            tilemap0: data,
             map,
             cursor: 15 * 20,
         }
@@ -163,7 +163,7 @@ impl FetchColor {
         let tile_x = x % 8;
         let tile_y = y % 8;
 
-        let tile_id = self.map.data[tile_pos_y][tile_pos_x] as usize;
+        let tile_id = self.map.tilemap0[tile_pos_y][tile_pos_x] as usize;
 
         let tile = &self.tiles.data[tile_id];
 
