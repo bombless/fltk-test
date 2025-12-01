@@ -100,10 +100,11 @@ impl World {
         let tiles = graphics::source("./graphics/spriteTiles.inc");
         let tiles2 = graphics::source("./graphics/spriteTiles2.inc");
         let bitmap = graphics::create_bitmap(&tiles, &tiles2);
-        World::Sprites {
-            bitmap,
-            start_time: Instant::now(),
-        }
+        // World::Sprites {
+        //     bitmap,
+        //     start_time: Instant::now(),
+        // }
+        World::Tiles { tiles: graphics::Tiles::new(), start_time: Instant::now() }
     }
 
     fn transform(&mut self) {
@@ -125,7 +126,7 @@ impl World {
     fn update(&mut self) {
         match self {
             World::Sprites { start_time, .. } | World::Tiles { start_time, .. } => {
-                if start_time.elapsed().as_secs() > 10 {
+                if start_time.elapsed().as_secs() > 1000 {
                     self.transform();
                 }
             }
@@ -187,6 +188,30 @@ impl World {
                     pixel.copy_from_slice(&[color.0, color.1, color.2, 0xFF]);
                 }
                 World::Tiles { tiles, .. } => {
+
+                    if x < 8 {
+                        let row = y / 8;
+                        let n = row / 10;
+                        let tile = &tiles.data()[0x600 + 26 + n];
+                        let tile_x = x % 8;
+                        let tile_y = y % 8;
+                        let color = &tile[tile_y][tile_x];
+                        pixel.copy_from_slice(&[color.0, color.1, color.2, 0xFF]);
+                        continue;
+
+                    }
+
+                    if x >= 8 && x < 2 * 8 {
+                        let row = y / 8;
+                        let n = row % 10;
+                        let tile = &tiles.data()[0x600 + 26 + n];
+                        let tile_x = x % 8;
+                        let tile_y = y % 8;
+                        let color = &tile[tile_y][tile_x];
+                        pixel.copy_from_slice(&[color.0, color.1, color.2, 0xFF]);
+                        continue;
+
+                    }
 
                     if x < 8 * 4 || x >= 512 + 8 * 4 || y >= 256 {
                         pixel.copy_from_slice(&[0, 0, 0, 0xFF]);
