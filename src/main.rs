@@ -183,15 +183,6 @@ impl World {
                         pixel.copy_from_slice(&[0, 0, 0, 0xFF]);
                         continue;
                     }
-                    if y >= 160 && x >= 256 && y + x / 2 > 356 {
-                        pixel.copy_from_slice(&[0, 0, 0, 0xFF]);
-                        continue;
-                    }
-
-                    if y >= 160 && x < 256 && y + x / 2 > 228 {
-                        pixel.copy_from_slice(&[0, 0, 0, 0xFF]);
-                        continue;
-                    }
 
                     let color = fetch_color.get_color(x % 256, y).unwrap_or((0, 0, 0));
                     pixel.copy_from_slice(&[color.0, color.1, color.2, 0xFF]);
