@@ -246,6 +246,10 @@ impl FetchColor {
             }
         }
 
+        if y >= 160 && y + x / 2 > 228 {
+            return None;
+        }
+
         let tile_pos_x = x / 8;
         let tile_pos_y = y / 8;
 
@@ -307,7 +311,7 @@ pub fn create_bitmap(
             let tile_data = if x < 32 * 8 { tiles } else { tiles2 };
             let i = x % (32 * 8) / 32;
             let j = y / 32;
-            let n = i * 8 + j;
+            let n = i + j * 8;
             let data = get_image(n, tile_data);
             let offset = y % 32 * 32 * 3 + x % 32 * 3;
             rgb[y][x] = (data[offset], data[offset + 1], data[offset + 2]);
