@@ -127,7 +127,7 @@ impl World {
         }
     }
 
-    /// Update the `World` internal state; bounce the circle around the screen.
+    /// Update the `World` internal state
     fn update(&mut self) {
         let mut should_transform = false;
         match self {
