@@ -32,12 +32,16 @@ fn get_image(n: usize, data: &[u8]) -> Vec<u8> {
     img
 }
 
+
 pub struct FetchColor {
     map: TileMap,
     cache: Box<[[u16; 17]; 32]>,
     tiles: Tiles,
     frame: usize,
+    sprites: Vec<(u8, u8, u16)>,
+    sprites_bitmap: Box<[[(u8, u8, u8); 512]; 256]>,
 }
+
 pub struct TileMap {
     tilemap0: Box<[[u16; 15]; 20]>,
     tilemap1: Box<[[u16; 32]; 32]>,
@@ -180,11 +184,22 @@ impl Tiles {
 
 impl FetchColor {
     pub fn new() -> Self {
+        let tiles = source("./graphics/spriteTiles.inc");
+        let tiles2 = source("./graphics/spriteTiles2.inc");
+        let bitmap = create_bitmap(&tiles, &tiles2);
         Self {
             map: TileMap::new(),
             tiles: Tiles::new(),
             frame: 0,
             cache: Default::default(),
+            sprites: vec![
+                (0x0c, 0x46, 0),
+                (0xb0, 0xdc, 0x3b),
+                (0xb0, 0xe0, 0x3a),
+                (0xd0, 0xe0, 0x3c),
+                // (0, 0, 0xc),
+            ],
+            sprites_bitmap: bitmap,
         }
     }
     pub fn next_frame(&mut self) {
@@ -213,8 +228,34 @@ impl FetchColor {
     }
 
     pub fn get_color(&self, x: usize, y: usize) -> Option<(u8, u8, u8)> {
+
+        for &(pos_x, pos_y, sprite_id) in &self.sprites {
+            let pos_x = pos_x as usize + 8;
+            let pos_y = pos_y as usize;
+            if x >= pos_x && x < pos_x + 32 && y >= pos_y && y < pos_y + 32 {
+                let sprite_offset_x = x - pos_x;
+                let sprite_offset_y = y - pos_y;
+
+                let sprite_origin_x = sprite_id as usize % 8 * 32;
+                let sprite_origin_y = sprite_id as usize / 8 * 32;
+
+                let color = self.sprites_bitmap[sprite_origin_y + sprite_offset_y][sprite_origin_x + sprite_offset_x];
+                if color != (0, 0, 0) {
+                    return Some(color);
+                }
+            }
+        }
+
         let tile_pos_x = x / 8;
         let tile_pos_y = y / 8;
+
+        let fuel_blocks = &[0x244 / 2, 0x284 / 2, 0x2c4 / 2, 0x304 / 2];
+
+        
+
+        if tile_pos_x + tile_pos_y * 32 == 0x798 / 2 {
+            return Some((255, 0, 0))
+        }
         
         if tile_pos_x >= 32 || tile_pos_y >= 32 {
             return None;
@@ -224,7 +265,11 @@ impl FetchColor {
 
         let tile1_id = self.map.tilemap1[tile_pos_y][tile_pos_x] as usize;
 
-        let tile_id = if tile1_id > 0 {
+        let tile_id = if fuel_blocks.contains(&(tile_pos_x + tile_pos_y * 32)) {
+            0x644
+            // 0x798
+            // 0x5e0
+        } else if tile1_id > 0 {
             tile1_id
         } else {
             if tile_pos_x < 17 && tile_pos_y < 32 {
