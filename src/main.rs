@@ -1,6 +1,6 @@
 
 use error_iter::ErrorIter as _;
-use fltk::{app, prelude::*, window::Window};
+use fltk::{app, prelude::*, window::Window, enums::{Event, Key}};
 use log::error;
 use pixels::{Error, Pixels, SurfaceTexture};
 use std::{cell::RefCell, rc::Rc};
@@ -39,7 +39,23 @@ fn main() -> Result<(), Error> {
     win.end();
     win.show();
 
-    let mut world = World::new();
+    let world = World::new();
+
+    let world = Rc::new(RefCell::new(world));
+
+    let another_world = Rc::clone(&world);
+
+    win.handle(move |_, ev| match ev {
+        Event::KeyDown => {
+            match app::event_key() {
+                Key::Escape => another_world.borrow_mut().transform(),
+                x if x == Key::from_char(' ') => another_world.borrow_mut().transform(),
+                _ => {}
+            }
+            true
+        },
+        _ => true,
+    });
 
     // Handle resize events
     let surface_size = Rc::new(RefCell::new(None));
@@ -62,7 +78,7 @@ fn main() -> Result<(), Error> {
 
     while app.wait() {
         // Update internal state
-        world.update();
+        world.borrow_mut().update();
 
         // Resize the window
         if let Some((width, height)) = surface_size.borrow_mut().take() {
@@ -73,7 +89,7 @@ fn main() -> Result<(), Error> {
         }
 
         // Draw the current frame
-        world.draw(pixels.frame_mut());
+        world.borrow_mut().draw(pixels.frame_mut());
         if let Err(err) = pixels.render() {
             log_error("pixels.render", err);
             app.quit();
