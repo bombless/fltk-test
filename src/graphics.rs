@@ -40,6 +40,7 @@ pub struct FetchColor {
     frame: usize,
     sprites: Vec<(u8, u8, u16)>,
     sprites_bitmap: Box<[[(u8, u8, u8); 512]; 256]>,
+    bolts: Vec<(u8, u8, u16)>,
 }
 
 pub struct TileMap {
@@ -200,6 +201,18 @@ impl FetchColor {
                 // (0, 0, 0xc),
             ],
             sprites_bitmap: bitmap,
+            bolts: vec![
+                // (0x1c, 0x3f, 0xd),
+                // (0, 0, 49),
+                // (32, 0, 50),
+                // (64, 0, 51),
+                // (64, 0x4f, 52),
+                // (0, 0x4f, 53),
+                // (16, 0x56, 54),
+                // (64, 0x56, 55),
+                // (128, 0x56, 56),
+
+                ],
         }
     }
     pub fn next_frame(&mut self) {
@@ -228,6 +241,25 @@ impl FetchColor {
     }
 
     pub fn get_color(&self, x: usize, y: usize) -> Option<(u8, u8, u8)> {
+
+        for &(pos_x, pos_y, sprite_id) in &self.bolts {
+            let pos_x = pos_x as usize + 8;
+            let pos_y = pos_y as usize;
+            if x >= pos_x && x < pos_x + 32 && y >= pos_y && y < pos_y + 32 {
+                let sprite_offset_x = x - pos_x;
+                let sprite_offset_y = y - pos_y;
+
+                let sprite_origin_x = sprite_id as usize % 8 * 32;
+                let sprite_origin_y = sprite_id as usize / 8 * 32;
+
+                let color = self.sprites_bitmap[sprite_origin_y + sprite_offset_y][sprite_origin_x + sprite_offset_x];
+                if color != (0, 0, 0) {
+                    return Some(color);
+                }
+
+            }
+
+        }
 
         for &(pos_x, pos_y, sprite_id) in &self.sprites {
             let pos_x = pos_x as usize + 8;
