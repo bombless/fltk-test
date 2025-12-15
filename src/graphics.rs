@@ -32,6 +32,12 @@ fn get_image(n: usize, data: &[u8]) -> Vec<u8> {
     img
 }
 
+#[derive(PartialEq)]
+enum Move {
+    Up,
+    Down,
+    No,
+}
 
 pub struct FetchColor {
     map: TileMap,
@@ -41,6 +47,8 @@ pub struct FetchColor {
     sprites: Vec<(u8, u8, u16)>,
     sprites_bitmap: Box<[[(u8, u8, u8); 512]; 256]>,
     bolts: Vec<(u8, u8, u16)>,
+    slot_fire: bool,
+    slot_move: Move,
 }
 
 pub struct TileMap {
@@ -213,13 +221,48 @@ impl FetchColor {
                 // (128, 0x56, 56),
 
                 ],
+            slot_fire: false,
+            slot_move: Move::No,
         }
     }
+
+    pub fn fire(&mut self) {
+        self.slot_fire = true;
+    }
+    pub fn move_up(&mut self) {
+        self.slot_move = Move::Up;
+    }
+    pub fn move_down(&mut self) {
+        self.slot_move = Move::Down;
+    }
     pub fn next_frame(&mut self) {
-        if self.frame > 160 {
+        if self.frame % 160 == 159 {
             self.map.reset();
-            self.frame = 0;
-            return;
+        }
+        if self.slot_move == Move::Up {
+            self.slot_move = Move::No;
+            self.sprites[0].1 -= 1;
+        }
+        if self.slot_move == Move::Down {
+            self.slot_move = Move::No;
+            self.sprites[0].1 += 1;
+        }
+        let bolts_length = self.bolts.len();
+        let mut reserve_n_blots = bolts_length;
+        for (x, y, _) in &mut self.bolts {
+            if *y > 0 && *x < 255 {
+                *y -= 1;
+                *x += 2;
+            } else {
+                reserve_n_blots -= 1;
+            }
+        }
+        
+        self.bolts = self.bolts[bolts_length - reserve_n_blots..].to_vec();
+        if self.slot_fire {
+            self.slot_fire = false;
+            let (x, y, _) = self.sprites[0];
+            self.bolts.push((x + 16, y - 7, 0x0d));
         }
         for y in (0 .. 31).rev() {
             for x in 0 .. 15 {

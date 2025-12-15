@@ -27,6 +27,26 @@ enum World {
     },
 }
 
+impl World {
+    fn move_down(&mut self) {
+        if let World::Animation { fetch_color, .. } = self {
+            fetch_color.move_down();
+        }
+    }
+
+    fn move_up(&mut self) {
+        if let World::Animation { fetch_color, .. } = self {
+            fetch_color.move_up();
+        }
+    }
+
+    fn fire(&mut self) {
+        if let World::Animation { fetch_color, .. } = self {
+            fetch_color.fire();
+        }
+    }
+}
+
 fn main() -> Result<(), Error> {
     #[cfg(debug_assertions)]
     env_logger::init();
@@ -49,7 +69,9 @@ fn main() -> Result<(), Error> {
         Event::KeyDown => {
             match app::event_key() {
                 Key::Escape => another_world.borrow_mut().transform(),
-                x if x == Key::from_char(' ') => another_world.borrow_mut().transform(),
+                Key::Up => another_world.borrow_mut().move_up(),
+                Key::Down => another_world.borrow_mut().move_down(),
+                x if x == Key::from_char(' ') => another_world.borrow_mut().fire(),
                 _ => {}
             }
             true
@@ -148,7 +170,7 @@ impl World {
         let mut should_transform = false;
         match self {
             World::Sprites { start_time, .. } | World::Tiles { start_time, .. } => {
-                if start_time.elapsed().as_secs() > 15 {
+                if start_time.elapsed().as_secs() > 1 {
                     should_transform = true;
                 }
             }
@@ -158,13 +180,13 @@ impl World {
                     let duration = start_time.elapsed().as_millis();
                     let frame_count = (duration / 100) as usize;
 
-                    if frame_count < 8 && frame_count > *last_frame {
+                    if frame_count > *last_frame {
                         println!("Frame: {}", frame_count);
                         *last_frame = frame_count;
                         fetch_color.skip_to(*last_frame);
                     }
 
-                    if start_time.elapsed().as_secs() > 15 {
+                    if start_time.elapsed().as_secs() > 150 {
                         should_transform = true;
                     }
                 }
