@@ -71,6 +71,8 @@ fn main() -> Result<(), Error> {
                 Key::Escape => another_world.borrow_mut().transform(),
                 Key::Up => another_world.borrow_mut().move_up(),
                 Key::Down => another_world.borrow_mut().move_down(),
+                x if x == Key::from_char('w') => another_world.borrow_mut().move_up(),
+                x if x == Key::from_char('s') => another_world.borrow_mut().move_down(),
                 x if x == Key::from_char(' ') => another_world.borrow_mut().fire(),
                 _ => {}
             }
